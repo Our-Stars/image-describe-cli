@@ -13,6 +13,7 @@ from .config import (
     save_config,
 )
 from .vision import describe_image, describe_image_data
+from .window_list import find_window as do_find_window
 from .window_list import list_windows as do_list_windows
 
 
@@ -70,10 +71,26 @@ def _get_describe_args(args):
     )
 
 
+def _resolve_window_id(args):
+    """Resolve --window-name to a window ID. Returns the effective window_id."""
+    if args.window_name is not None:
+        if sys.platform != "darwin":
+            print(
+                "Warning: --window-name is macOS only, ignored.",
+                file=sys.stderr,
+            )
+            return None
+        win = do_find_window(args.window_name)
+        return win["id"]
+    return args.window_id
+
+
 def cmd_capture(args):
+    window_id = _resolve_window_id(args)
+
     if args.describe and not args.output:
         try:
-            image_bytes = do_capture_bytes(window_id=args.window_id)
+            image_bytes = do_capture_bytes(window_id=window_id)
         except Exception as e:
             print(f"Error: screenshot failed - {e}", file=sys.stderr)
             raise SystemExit(1)
@@ -87,7 +104,7 @@ def cmd_capture(args):
             raise SystemExit(1)
     else:
         try:
-            filepath = do_capture(output_path=args.output, window_id=args.window_id)
+            filepath = do_capture(output_path=args.output, window_id=window_id)
             print(f"Screenshot saved: {filepath}")
         except Exception as e:
             print(f"Error: screenshot failed - {e}", file=sys.stderr)
@@ -177,9 +194,11 @@ def build_capture_parser():
         description=(
             "Capture the screen, optionally call Vision API to describe it.\n"
             "\n"
-            "On macOS, use -w to capture a specific window by its ID — even if\n"
-            "the window is occluded by others (deep window capture).\n"
-            "On other platforms, a full-screen screenshot is taken and -w is ignored.\n"
+            "On macOS, use --window-name to auto-detect and capture a specific window\n"
+            "by its title (case-insensitive substring match). The window is captured even\n"
+            "if occluded by others (deep window capture).\n"
+            "Use -w to capture by window ID directly.\n"
+            "On other platforms, a full-screen screenshot is taken and window options are ignored.\n"
             "\n"
             "Screenshots are saved to ~/.config/image-describe/captures/ by default.\n"
             "When using -d without -o, the screenshot is processed in-memory and not\n"
@@ -187,22 +206,28 @@ def build_capture_parser():
         ),
         epilog=(
             "Examples:\n"
-            "  image-describe capture                          # full screen, save to default dir\n"
-            "  image-describe capture -o <path>                # save to a specific path\n"
-            "  image-describe capture -d                       # capture and describe, no file saved\n"
-            "  image-describe capture -d -o <path>             # capture, save and describe\n"
-            "  image-describe capture -d -p <prompt>           # custom describe prompt\n"
-            "  image-describe capture -w <window-id> -d        # macOS: capture a specific window"
+            "  image-describe capture                                # full screen, save to default dir\n"
+            "  image-describe capture -o <path>                      # save to a specific path\n"
+            "  image-describe capture -d                             # capture and describe, no file saved\n"
+            "  image-describe capture -d -o <path>                   # capture, save and describe\n"
+            "  image-describe capture -d -p <prompt>                 # custom describe prompt\n"
+            "  image-describe capture -w <window-id> -d              # macOS: capture by window ID\n"
+            "  image-describe capture --window-name <name> -d        # macOS: capture by window name"
         ),
     )
     parser.add_argument(
         "-o", "--output",
         help="output path (default: ~/.config/image-describe/captures/screenshot_<timestamp>.png)",
     )
-    parser.add_argument(
+    window_group = parser.add_mutually_exclusive_group()
+    window_group.add_argument(
         "-w", "--window-id",
         type=int,
-        help="target window ID (macOS only, occluded-window capture)",
+        help="target window ID (macOS only)",
+    )
+    window_group.add_argument(
+        "--window-name",
+        help="target window name — case-insensitive substring match (macOS only)",
     )
     parser.add_argument(
         "-d", "--describe",
@@ -227,7 +252,7 @@ def main():
             "\n"
             "Usage:\n"
             "  image-describe describe   <image>  [-p <prompt>] [-m <model>]\n"
-            "  image-describe capture    [-o <path>] [-w <window-id>] [-d] [-p <prompt>] [-m <model>]\n"
+            "  image-describe capture    [-o <path>] [-w <id> | --window-name <name>] [-d] [-p <prompt>] [-m <model>]\n"
             "  image-describe list-windows\n"
             "  image-describe config     [--api-key <key>] [--model <model>] [--base-url <url>] [--show]\n"
             "\n"

@@ -40,3 +40,41 @@ def list_windows():
             )
 
     return windows
+
+
+def find_window(name_query):
+    """Find a window by name (case-insensitive substring match). macOS only.
+
+    Searches both window title and owner name. Raises SystemExit if zero or
+    multiple matches.
+
+    Returns:
+        dict: matched window with id, owner, name fields
+    """
+    windows = list_windows()
+    query = name_query.lower()
+    matches = [
+        w for w in windows
+        if query in w["name"].lower() or query in w["owner"].lower()
+    ]
+
+    if len(matches) == 0:
+        print(
+            f"Error: no window matching '{name_query}' found.", file=sys.stderr
+        )
+        print(
+            "Run 'image-describe list-windows' to see available windows.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+
+    if len(matches) == 1:
+        return matches[0]
+
+    print(
+        f"Error: multiple windows match '{name_query}':", file=sys.stderr
+    )
+    for w in matches:
+        print(f"  {w['id']}\t{w['owner']}\t{w['name']}", file=sys.stderr)
+    print("\nUse -w <window-id> to specify one directly.", file=sys.stderr)
+    raise SystemExit(1)
