@@ -39,8 +39,8 @@ def get_api_key():
     config = load_config()
     key = config.get("api_key", "")
     if not key:
-        print("错误：未配置 API Key。请运行：")
-        print("  image-describe config --api-key <你的API Key>")
+        print("Error: API Key not configured. Please run:")
+        print("  image-describe config --api-key <your-api-key>")
         raise SystemExit(1)
     return key
 

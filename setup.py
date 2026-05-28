@@ -4,7 +4,10 @@ setup(
     name="image-describe",
     version="0.1.0",
     packages=find_packages(),
-    install_requires=["openai>=1.0"],
+    install_requires=[
+        "openai>=1.0",
+        "mss",
+    ],
     entry_points={
         "console_scripts": [
             "image-describe=image_describe.cli:main",

@@ -15,14 +15,14 @@ def get_mime_type(path):
         ".webp": "image/webp",
     }
     if ext not in mime_map:
-        print(f"错误：不支持的图片格式 '{ext}'。支持: {list(mime_map.keys())}")
+        print(f"Error: unsupported image format '{ext}'. Supported: {list(mime_map.keys())}")
         raise SystemExit(1)
     return mime_map[ext]
 
 
 def encode_local_image(path):
     if not os.path.exists(path):
-        print(f"错误：文件不存在 - {path}")
+        print(f"Error: file not found - {path}")
         raise SystemExit(1)
     mime = get_mime_type(path)
     with open(path, "rb") as f:
@@ -30,10 +30,8 @@ def encode_local_image(path):
     return f"data:{mime};base64,{data}"
 
 
-def describe_image(image_path, prompt, api_key, model, base_url):
+def _call_api(data_url, prompt, api_key, model, base_url):
     client = OpenAI(api_key=api_key, base_url=base_url)
-
-    data_url = encode_local_image(image_path)
     completion = client.chat.completions.create(
         model=model,
         messages=[
@@ -47,3 +45,14 @@ def describe_image(image_path, prompt, api_key, model, base_url):
         ],
     )
     return completion.choices[0].message.content
+
+
+def describe_image(image_path, prompt, api_key, model, base_url):
+    data_url = encode_local_image(image_path)
+    return _call_api(data_url, prompt, api_key, model, base_url)
+
+
+def describe_image_data(image_bytes, prompt, api_key, model, base_url):
+    """Describe raw PNG bytes directly, without writing to disk."""
+    data_url = f"data:image/png;base64,{base64.b64encode(image_bytes).decode('utf-8')}"
+    return _call_api(data_url, prompt, api_key, model, base_url)
