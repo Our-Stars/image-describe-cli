@@ -7,6 +7,12 @@
 ## 安装
 
 ```bash
+pip install image-describe
+```
+
+或从源码安装：
+
+```bash
 pip install -e .
 ```
 

@@ -7,6 +7,12 @@ A simple CLI tool to describe images via OpenAI-compatible Vision APIs. Works wi
 ## Installation
 
 ```bash
+pip install image-describe
+```
+
+Or install from source:
+
+```bash
 pip install -e .
 ```
 
